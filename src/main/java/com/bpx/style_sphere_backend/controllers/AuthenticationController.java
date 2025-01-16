@@ -6,6 +6,7 @@ import com.bpx.style_sphere_backend.models.dtos.UserRegisterRequest;
 import com.bpx.style_sphere_backend.services.interfaces.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,14 +28,14 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<UserAuthResponse> register(
-            @RequestBody UserRegisterRequest request
+            @RequestBody @Valid UserRegisterRequest request
     ) {
-        return ResponseEntity.ok(service.register(request));
+        return ResponseEntity.status(201).body(service.register(request));
     }
 
     @PostMapping("/authenticate")
     public ResponseEntity<UserAuthResponse> authenticate(
-            @RequestBody UserAuthRequest request
+            @RequestBody @Valid UserAuthRequest request
     ) {
         return ResponseEntity.ok(service.authenticate(request));
     }
