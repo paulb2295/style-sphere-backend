@@ -2,6 +2,9 @@ package com.bpx.style_sphere_backend.services.implemantations;
 
 import com.bpx.style_sphere_backend.enums.AppRole;
 import com.bpx.style_sphere_backend.enums.TokenType;
+import com.bpx.style_sphere_backend.exceptions.RefreshTokenGeneratingException;
+import com.bpx.style_sphere_backend.exceptions.UsedEmailException;
+import com.bpx.style_sphere_backend.exceptions.WrongEmailPasswordException;
 import com.bpx.style_sphere_backend.models.dtos.UserAuthRequest;
 import com.bpx.style_sphere_backend.models.dtos.UserAuthResponse;
 import com.bpx.style_sphere_backend.models.dtos.UserRegisterRequest;
@@ -16,6 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.bpx.style_sphere_backend.repositories.TokenRepository;
@@ -43,6 +47,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public UserAuthResponse register(UserRegisterRequest request) {
+        if(repository.findByEmail(request.getEmail()).isPresent()){
+            throw new UsedEmailException("Email already associated to an account!");
+        }
         var user = new User.Builder()
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
@@ -62,14 +69,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public UserAuthResponse authenticate(UserAuthRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try{
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException authenticationException){
+            throw  new WrongEmailPasswordException("Wrong Email or Password!");
+        }
+
         var user = repository.findByEmail(request.getEmail())
-                .orElseThrow();
+                .orElseThrow( () -> new WrongEmailPasswordException("Wrong Email or Password!"));
         var jwtToken = jwtHandler.generateToken(extractUserDetails(user),user); //jwtHandler.generateToken(user);
         var refreshToken = jwtHandler.generateRefreshToken(user);
         revokeAllUserTokens(user);
@@ -105,7 +117,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void refreshToken(HttpServletRequest request, HttpServletResponse response){
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String refreshToken;
         final String userEmail;
@@ -116,7 +128,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userEmail = jwtHandler.extractUsername(refreshToken);
         if (userEmail != null) {
             var user = this.repository.findByEmail(userEmail)
-                    .orElseThrow();
+                    .orElseThrow(() -> new WrongEmailPasswordException("Could not authenticate user. Sign In!"));
             if (jwtHandler.isTokenValid(refreshToken, user)) {
                 var accessToken = jwtHandler.generateToken(extractUserDetails(user),user); //jwtHandler.generateToken(user);
                 revokeAllUserTokens(user);
@@ -125,7 +137,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .build();
-                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+                try {
+                    new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+                }catch (IOException ioException){
+                    throw new RefreshTokenGeneratingException("Could not generate Token. Sign In!");
+                }
+
             }
         }
     }

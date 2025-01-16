@@ -1,8 +1,14 @@
 package com.bpx.style_sphere_backend.models.dtos;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+
 public class UserAuthRequest {
 
+    @NotBlank @Email
     private String email;
+    @NotBlank
     String password;
 
     public UserAuthRequest() {

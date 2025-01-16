@@ -1,13 +1,20 @@
 package com.bpx.style_sphere_backend.models.dtos;
 
 import com.bpx.style_sphere_backend.enums.AppRole;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 
 public class UserRegisterRequest {
 
+    @NotBlank(message = " First Name Mandatory!")
     private String firstname;
+    @NotBlank(message = "Last Name Mandatory!")
     private String lastname;
+    @NotBlank(message = "Email Mandatory!") @Email(message = "Insert a valid email!")
     private String email;
+    @Size(min = 8, message = "Password Must have 8 or more characters!")
     private String password;
     private AppRole appRole;
 
