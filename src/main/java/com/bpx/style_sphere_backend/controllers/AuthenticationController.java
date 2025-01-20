@@ -28,16 +28,18 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<UserAuthResponse> register(
-            @RequestBody @Valid UserRegisterRequest request
+            @RequestBody @Valid UserRegisterRequest request,
+            HttpServletResponse response
     ) {
-        return ResponseEntity.status(201).body(service.register(request));
+        return ResponseEntity.status(201).body(service.register(request, response));
     }
 
     @PostMapping("/authenticate")
     public ResponseEntity<UserAuthResponse> authenticate(
-            @RequestBody @Valid UserAuthRequest request
+            @RequestBody @Valid UserAuthRequest request,
+            HttpServletResponse response
     ) {
-        return ResponseEntity.ok(service.authenticate(request));
+        return ResponseEntity.ok(service.authenticate(request, response));
     }
 
     @PostMapping("/refresh-token")

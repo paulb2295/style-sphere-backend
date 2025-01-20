@@ -18,8 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.*;
 
 @ControllerAdvice
 public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
@@ -64,7 +63,12 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(RefreshTokenGeneratingException.class)
     public ResponseEntity<String> refreshTokenGenerationException(RefreshTokenGeneratingException refreshTokenGeneratingException) {
-        return new ResponseEntity<>(objectToString(Map.of("message", refreshTokenGeneratingException.getMessage())), INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(objectToString(Map.of("message", refreshTokenGeneratingException.getMessage())), NOT_ACCEPTABLE);
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<String> invalidRefreshTokenException(InvalidRefreshTokenException invalidRefreshTokenException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", invalidRefreshTokenException.getMessage())), BAD_REQUEST);
     }
 
     private String objectToString(Object response) {
