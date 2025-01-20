@@ -2,6 +2,7 @@ package com.bpx.style_sphere_backend.services.implemantations;
 
 import com.bpx.style_sphere_backend.enums.AppRole;
 import com.bpx.style_sphere_backend.enums.TokenType;
+import com.bpx.style_sphere_backend.exceptions.InvalidRefreshTokenException;
 import com.bpx.style_sphere_backend.exceptions.RefreshTokenGeneratingException;
 import com.bpx.style_sphere_backend.exceptions.UsedEmailException;
 import com.bpx.style_sphere_backend.exceptions.WrongEmailPasswordException;
@@ -14,6 +15,7 @@ import com.bpx.style_sphere_backend.repositories.UserRepository;
 import com.bpx.style_sphere_backend.security.JwtHandler;
 import com.bpx.style_sphere_backend.services.interfaces.AuthenticationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 import com.bpx.style_sphere_backend.repositories.TokenRepository;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,8 +49,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public UserAuthResponse register(UserRegisterRequest request) {
-        if(repository.findByEmail(request.getEmail()).isPresent()){
+    public UserAuthResponse register(UserRegisterRequest request, HttpServletResponse response) {
+        if (repository.findByEmail(request.getEmail()).isPresent()) {
             throw new UsedEmailException("Email already associated to an account!");
         }
         var user = new User.Builder()
@@ -58,39 +61,57 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .appRole(AppRole.USER)
                 .build();
         var savedUser = repository.save(user);
-        var jwtToken = jwtHandler.generateToken(extractUserDetails(savedUser),savedUser); //jwtHandler.generateToken(user);
+        var jwtToken = jwtHandler.generateToken(extractUserDetails(savedUser), savedUser); //jwtHandler.generateToken(user);
         var refreshToken = jwtHandler.generateRefreshToken(user);
+
+        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(false);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(24*60*60);
+        refreshCookie.setDomain("localhost");
+        response.addCookie(refreshCookie);
+
         saveUserToken(savedUser, jwtToken);
         return new UserAuthResponse.Builder()
                 .accessToken(jwtToken)
-                .refreshToken(refreshToken)
                 .build();
     }
 
     @Override
-    public UserAuthResponse authenticate(UserAuthRequest request) {
-        try{
+    public UserAuthResponse authenticate(UserAuthRequest request, HttpServletResponse response) {
+        try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
                             request.getPassword()
                     )
             );
-        } catch (AuthenticationException authenticationException){
-            throw  new WrongEmailPasswordException("Wrong Email or Password!");
+        } catch (AuthenticationException authenticationException) {
+            throw new WrongEmailPasswordException("Wrong Email or Password!");
         }
 
         var user = repository.findByEmail(request.getEmail())
-                .orElseThrow( () -> new WrongEmailPasswordException("Wrong Email or Password!"));
-        var jwtToken = jwtHandler.generateToken(extractUserDetails(user),user); //jwtHandler.generateToken(user);
+                .orElseThrow(() -> new WrongEmailPasswordException("Wrong Email or Password!"));
+
+        var jwtToken = jwtHandler.generateToken(extractUserDetails(user), user); //jwtHandler.generateToken(user);
         var refreshToken = jwtHandler.generateRefreshToken(user);
+
+        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(false);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(24*60*60);
+        refreshCookie.setDomain("localhost");
+        response.addCookie(refreshCookie);
+
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
         return new UserAuthResponse.Builder()
                 .accessToken(jwtToken)
-                .refreshToken(refreshToken)
                 .build();
     }
+
 
     @Override
     public void saveUserToken(User user, String jwtToken) {
@@ -117,32 +138,36 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void refreshToken(HttpServletRequest request, HttpServletResponse response){
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        final String refreshToken;
-        final String userEmail;
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return;
+    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
+        if(request.getCookies() == null){
+            throw new RefreshTokenGeneratingException("No cookies sent!");
         }
-        refreshToken = authHeader.substring(7);
-        userEmail = jwtHandler.extractUsername(refreshToken);
+        final String refreshToken = Arrays.stream(request.getCookies())
+                .filter(cookie -> "refreshToken".equals(cookie.getName()))
+                .findFirst()
+                .map(Cookie::getValue)
+                .orElse(null);
+        if(refreshToken == null){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            throw new RefreshTokenGeneratingException("No refresh token sent!");
+        }
+
+        String userEmail = jwtHandler.extractUsername(refreshToken);
         if (userEmail != null) {
             var user = this.repository.findByEmail(userEmail)
-                    .orElseThrow(() -> new WrongEmailPasswordException("Could not authenticate user. Sign In!"));
+                    .orElseThrow(() -> new InvalidRefreshTokenException("Could not re-authenticate user. Sign In!"));
             if (jwtHandler.isTokenValid(refreshToken, user)) {
-                var accessToken = jwtHandler.generateToken(extractUserDetails(user),user); //jwtHandler.generateToken(user);
+                var accessToken = jwtHandler.generateToken(extractUserDetails(user), user);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
                 var authResponse = new UserAuthResponse.Builder()
                         .accessToken(accessToken)
-                        .refreshToken(refreshToken)
                         .build();
-                try {
-                    new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
-                }catch (IOException ioException){
-                    throw new RefreshTokenGeneratingException("Could not generate Token. Sign In!");
-                }
 
+                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+            }else {
+                throw new InvalidRefreshTokenException("Invalid refresh token!");
             }
         }
     }
