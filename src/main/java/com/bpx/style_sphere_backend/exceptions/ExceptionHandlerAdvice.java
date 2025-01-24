@@ -71,6 +71,11 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(objectToString(Map.of("message", invalidRefreshTokenException.getMessage())), BAD_REQUEST);
     }
 
+    @ExceptionHandler(InvalidStoreItemException.class)
+    public ResponseEntity<String> stringStoreItemException(InvalidStoreItemException invalidStoreItemException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", invalidStoreItemException.getMessage())), BAD_REQUEST);
+    }
+
     private String objectToString(Object response) {
         try {
             return objectMapper.writeValueAsString(response);
