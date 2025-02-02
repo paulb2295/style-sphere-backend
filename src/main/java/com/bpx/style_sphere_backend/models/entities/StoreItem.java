@@ -3,6 +3,8 @@ package com.bpx.style_sphere_backend.models.entities;
 import com.bpx.style_sphere_backend.enums.StoreItemsCategories;
 import jakarta.persistence.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "store_items")
 public class StoreItem {
@@ -16,6 +18,9 @@ public class StoreItem {
     @Column(name = "category")
     @Enumerated(value = EnumType.STRING)
     private StoreItemsCategories category;
+
+
+
 
     public StoreItem(Long id, String name, String imageUrl, Double price, StoreItemsCategories category) {
         this.id = id;
@@ -66,6 +71,7 @@ public class StoreItem {
     public void setCategory(StoreItemsCategories category) {
         this.category = category;
     }
+
 
     public static class Builder{
         private Long id;
