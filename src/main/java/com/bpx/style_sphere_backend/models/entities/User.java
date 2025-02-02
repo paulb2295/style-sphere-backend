@@ -27,6 +27,14 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL, targetEntity = Address.class)
+    @JoinColumn(name = "address_id", referencedColumnName = "id", nullable = true)
+    private Address address;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
+    private List<Order> orders;
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return appRole.getAuthorities();
@@ -115,6 +123,22 @@ public class User implements UserDetails {
         this.tokens = tokens;
     }
 
+    public Address getAddress() {
+        return address;
+    }
+
+    public void setAddress(Address address) {
+        this.address = address;
+    }
+
+    public List<Order> getOrders() {
+        return orders;
+    }
+
+    public void setOrders(List<Order> orders) {
+        this.orders = orders;
+    }
+
     public static class Builder {
 
         private Long id;
@@ -123,6 +147,7 @@ public class User implements UserDetails {
         private String email;
         private String password;
         private AppRole appRole;
+        private Address address;
 
         public Builder id(Long id) {
             this.id = id;
@@ -154,6 +179,11 @@ public class User implements UserDetails {
             return this;
         }
 
+        public Builder address(Address address) {
+            this.address = address;
+            return this;
+        }
+
         public User build() {
             User user = new User();
             user.id = this.id;
@@ -162,6 +192,7 @@ public class User implements UserDetails {
             user.email = this.email;
             user.password = this.password;
             user.appRole = this.appRole;
+            user.address = this.address;
             return user;
         }
     }

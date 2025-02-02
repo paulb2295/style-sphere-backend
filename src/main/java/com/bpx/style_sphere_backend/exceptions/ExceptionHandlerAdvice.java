@@ -52,7 +52,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(UsedEmailException.class)
-    public ResponseEntity<String> usedEmailException (UsedEmailException usedEmailException) {
+    public ResponseEntity<String> usedEmailException(UsedEmailException usedEmailException) {
         return new ResponseEntity<>(objectToString(Map.of("message", usedEmailException.getMessage())), BAD_REQUEST);
     }
 
@@ -74,6 +74,11 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidStoreItemException.class)
     public ResponseEntity<String> stringStoreItemException(InvalidStoreItemException invalidStoreItemException) {
         return new ResponseEntity<>(objectToString(Map.of("message", invalidStoreItemException.getMessage())), BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ItemNotFoundException.class)
+    public ResponseEntity<String> itemNotFoundException(ItemNotFoundException itemNotFoundException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", itemNotFoundException.getMessage())), NOT_FOUND);
     }
 
     private String objectToString(Object response) {
