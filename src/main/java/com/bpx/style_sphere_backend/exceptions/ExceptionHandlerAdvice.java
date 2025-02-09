@@ -81,6 +81,11 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(objectToString(Map.of("message", itemNotFoundException.getMessage())), NOT_FOUND);
     }
 
+    @ExceptionHandler(EmailException.class)
+    public ResponseEntity<String> emailException(EmailException emailException) {
+        return new ResponseEntity<>(objectToString(Map.of("message", emailException.getMessage())), SERVICE_UNAVAILABLE);
+    }
+
     private String objectToString(Object response) {
         try {
             return objectMapper.writeValueAsString(response);

@@ -1,6 +1,7 @@
 package com.bpx.style_sphere_backend.services.implemantations;
 
 import com.bpx.style_sphere_backend.enums.OrderStatus;
+import com.bpx.style_sphere_backend.exceptions.EmailException;
 import com.bpx.style_sphere_backend.exceptions.ItemNotFoundException;
 import com.bpx.style_sphere_backend.models.dtos.OrderItemInputDTO;
 import com.bpx.style_sphere_backend.models.dtos.OrderItemOutputDTO;
@@ -12,8 +13,10 @@ import com.bpx.style_sphere_backend.repositories.OrderItemRepository;
 import com.bpx.style_sphere_backend.repositories.OrderRepository;
 import com.bpx.style_sphere_backend.repositories.StoreItemRepository;
 import com.bpx.style_sphere_backend.repositories.UserRepository;
+import com.bpx.style_sphere_backend.services.interfaces.EmailService;
 import com.bpx.style_sphere_backend.services.interfaces.OrderService;
 import com.bpx.style_sphere_backend.utilities.StoreItemConverter;
+import jakarta.mail.MessagingException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,12 +28,14 @@ public class OrderServiceImpl implements OrderService {
     private final StoreItemRepository storeItemRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final EmailService emailService;
 
 
-    public OrderServiceImpl(StoreItemRepository storeItemRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository) {
+    public OrderServiceImpl(StoreItemRepository storeItemRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, EmailService emailService) {
         this.storeItemRepository = storeItemRepository;
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -62,6 +67,12 @@ public class OrderServiceImpl implements OrderService {
                                 item.getQuantity()
                         )).toList()
         );
+        try{
+            emailService.sendEmail(orderOutputDTO.getUserEmail(),"", OrderStatus.CREATED.name(), orderOutputDTO);
+        }catch (MessagingException e){
+            throw new EmailException("Email could not be sent. Try Again Later");
+        }
+
         return orderOutputDTO;
     }
 
@@ -77,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public boolean setOrderAsCompleted(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new ItemNotFoundException("Order Not Found!"));
-        order.setDeliveredTime(LocalDateTime.now());
+        order.setCompletedTime(LocalDateTime.now());
         order.setOrderStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
         return true;

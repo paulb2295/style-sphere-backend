@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Update</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .email-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .order-status {
+            font-weight: bold;
+            color: #4caf50; /* Green color for success */
+        }
+        .order-details {
+            margin-top: 20px;
+        }
+        .order-item {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center
+        }
+        .order-item .item-name {
+            font-weight: bold;
+        }
+        .order-item .item-quantity {
+            color: #555;
+        }
+        img{
+        width: 100px;
+        height:100 px;
+        object-fit: cover;
+        margin-right: 50px
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <h1>Hello, <span th:text="${name}">Customer</span>!</h1>
+
+    <p>We are reaching out to inform you about the status of your order.</p>
+
+    <p class="order-status">Order Status: <span th:text="${status}">Status Placeholder</span></p>
+
+    <div class="order-details">
+        <h3>Order Details:</h3>
+        <div th:each="orderItem : ${orders}">
+            <div class="order-item">
+                <img th:src="@{${orderItem.storeItemDto.imageUrl}}">
+                <div>
+                    <p class="item-name" th:text="${orderItem.storeItemDto.name}">Item Name</p>
+                    <p class="item-quantity" th:text="'Quantity: ' + ${orderItem.quantity}">Quantity Placeholder</p>
+                    <p class="item-price" th:text="'Price: $' + ${orderItem.storeItemDto.price}">Price Placeholder</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <p>Thank you for shopping with us!</p>
+</div>
+</body>
+</html>
