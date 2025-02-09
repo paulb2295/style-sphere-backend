@@ -28,6 +28,18 @@ spring:
     redis:
       time-to-live: 600000
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: email
+    password: password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 application:
   security:
     jwt:
