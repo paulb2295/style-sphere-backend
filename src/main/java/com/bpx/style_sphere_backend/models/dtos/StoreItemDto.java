@@ -4,9 +4,10 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class StoreItemDto {
+public class StoreItemDto implements Serializable {
 
     private Long id;
     @NotBlank(message = "Product name Mandatory!")
@@ -15,7 +16,6 @@ public class StoreItemDto {
     private String imageUrl;
     @Min(1)
     private Double price;
-
 
     @NotNull(message = "Product category Mandatory!")
     private StoreItemsCategories category;
