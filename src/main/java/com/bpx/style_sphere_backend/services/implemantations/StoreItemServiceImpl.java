@@ -7,6 +7,9 @@ import com.bpx.style_sphere_backend.models.entities.StoreItem;
 import com.bpx.style_sphere_backend.repositories.StoreItemRepository;
 import com.bpx.style_sphere_backend.services.interfaces.StoreItemService;
 import com.bpx.style_sphere_backend.utilities.StoreItemConverter;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,6 +31,7 @@ public class StoreItemServiceImpl implements StoreItemService {
     }
 
     @Override
+    @CachePut(value = "storeItems", key = "#storeItemDto.id")
     public boolean createStoreItems(List<StoreItemDto> storeItemDtoList) {
         List<StoreItem> savedItemsList = storeItemRepository.saveAll(storeItemDtoList.stream()
                 .map(item -> StoreItemConverter.toEntity(item))
@@ -36,6 +40,7 @@ public class StoreItemServiceImpl implements StoreItemService {
     }
 
     @Override
+    @Cacheable(value = "storeItemsByCategory", key ="#category.name()")
     public List<StoreItemDto> getItemsByCategory(StoreItemsCategories category){
         return storeItemRepository.getItemsByCategory(category.name()).stream()
                 .map((item) -> StoreItemConverter.toDto(item))
@@ -43,6 +48,7 @@ public class StoreItemServiceImpl implements StoreItemService {
     }
 
     @Override
+    @Cacheable(value = "soreItems", key = "'all'")
     public List<StoreItemDto> getAllItems(){
         return storeItemRepository.findAll().stream()
                 .map((item) -> StoreItemConverter.toDto(item))
@@ -50,12 +56,14 @@ public class StoreItemServiceImpl implements StoreItemService {
     }
 
     @Override
+    @CachePut(value = "storeItems", key = "#storeItemDto.id")
     public boolean editStoreItem(StoreItemDto storeItemDto){
         StoreItem savedEditedItem = storeItemRepository.save(StoreItemConverter.toEntity(storeItemDto));
         return storeItemDto.equals(StoreItemConverter.toDto(savedEditedItem));
     }
 
     @Override
+    @CacheEvict(value = "storeItems", key = "#id")
     public void deleteStoreItem(Long id){
         Optional<StoreItem> optionalStoreItem = storeItemRepository.findById(id);
         if(optionalStoreItem.isPresent()){
